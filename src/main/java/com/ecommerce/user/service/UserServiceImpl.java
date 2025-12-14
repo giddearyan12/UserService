@@ -1,6 +1,7 @@
 package com.ecommerce.user.service;
 
-
+import com.ecommerce.user.dto.UserRegisterDto;
+import com.ecommerce.user.dto.UserResponse;
 import com.ecommerce.user.model.UserModel;
 import com.ecommerce.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -23,27 +25,52 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserModel registerUser(UserModel user) {
-        // Check if user with email already exists
-        Optional<UserModel> existingUser = userRepository.findByEmail(user.getEmail());
-        if (existingUser.isPresent()) {
-            throw new RuntimeException("Email is already registered");
+    public UserResponse registerUser(UserRegisterDto userDto) {
+        Optional<UserModel> existingUserByEmail = userRepository.findByEmail(userDto.getEmail());
+        if (existingUserByEmail.isPresent()) {
+            throw new com.ecommerce.user.exception.DuplicateEmailException("Email is already registered");
         }
 
-        // Hash the password before saving
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        Optional<UserModel> existingUserByPhone = userRepository.findByPhone(userDto.getPhone());
+        if (existingUserByPhone.isPresent()) {
+            throw new com.ecommerce.user.exception.DuplicatePhoneException("Phone number is already registered");
+        }
 
-        return userRepository.save(user);
+        // Convert DTO to entity
+        UserModel user = UserMapper.toEntity(userDto);
+        // set default role if not provided
+        if (user.getRole() == null || user.getRole().trim().isEmpty()) {
+            user.setRole("user");
+        }
+        user.setPassword(passwordEncoder.encode(user.getPassword())); // encode password
+
+        UserModel savedUser = userRepository.save(user);
+        return UserMapper.toResponse(savedUser); // return response DTO
     }
 
     @Override
-    public Optional<UserModel> getUserByEmail(String email) {
-        return userRepository.findByEmail(email);
+    public UserResponse loginUser(String email, String password) {
+        UserModel existingUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new com.ecommerce.user.exception.InvalidCredentialsException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(password, existingUser.getPassword())) {
+            throw new com.ecommerce.user.exception.InvalidCredentialsException("Invalid email or password");
+        }
+
+        return UserMapper.toResponse(existingUser);
     }
 
     @Override
-    public List<UserModel> getAllUsers() {
-        return userRepository.findAll();
+    public Optional<UserResponse> getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .map(UserMapper::toResponse);
+    }
+
+    @Override
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll()
+                .stream()
+                .map(UserMapper::toResponse)
+                .collect(Collectors.toList());
     }
 }
-

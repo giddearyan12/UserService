@@ -1,7 +1,6 @@
 package com.ecommerce.user.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 
 
 @Entity
@@ -12,22 +11,24 @@ public class UserModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Name is required")
-    @Size(min = 2, max = 50, message = "Name must be between 2 and 50 characters")
+
+    @Column(nullable = false)
     private String name;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email should be valid")
-    @Column(unique = true)
+
+    @Column(nullable = false, unique = true)
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+
+    @Column(nullable = false)
     private String password;
 
-    @NotBlank(message = "Phone number is required")
-//    @Pattern(regexp = "^\\d{10}$", message = "Phone number must be 10 digits")
+
+    @Column(nullable = false, unique = true)
     private String phone;
+
+    @Column(nullable = false)
+    private String role;
 
     // Constructors
     public UserModel() {
@@ -38,9 +39,9 @@ public class UserModel {
         this.email = email;
         this.password = password;
         this.phone = phone;
+        this.role = "user";
     }
 
-    // Getters & Setters
 
     public Long getId() {
         return id;
@@ -80,5 +81,13 @@ public class UserModel {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }
